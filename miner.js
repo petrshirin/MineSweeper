@@ -2,6 +2,7 @@
 
 var end_game = new Event('end_game');
 var start_game = new Event('start_game');
+var win_game = new Event('win_game');
 
 function call_start() {
 	document.dispatchEvent(start_game);
@@ -25,10 +26,22 @@ document.addEventListener('end_game', () => {
 })
 
 document.addEventListener('start_game', (e) => {
-	console.log(e);
 	main_field = new Field();
 	main_field.generate_html();
 	main_field.generate_field();
+})
+
+
+document.addEventListener('win_game', () => {
+	alert('You win');
+	for (let i = 0; i < main_field.height; i++) {
+		for (let j = 0; j < main_field.width; j++) {
+			main_field.field[i][j].elem.removeEventListener('Enter', main_field.handleEvent);
+			main_field.field[i][j].elem.removeEventListener('click', main_field.handleEvent);
+			main_field.field[i][j].elem.removeEventListener('contextmenu', main_field.handleEvent);
+		}
+	}
+	document.removeEventListener('keydown', main_field.handleEvent);
 })
 
 
@@ -220,13 +233,21 @@ class Field {
 	}
 
 	check_game() {
-		if (!(document.getElementsByClassName('no_view')))
-			document.dispatchEvent(end_game);
+		let is_end = true;
+		for (let i = 0; i < this.height; i++) {
+			for (let j = 0; j < this.width; j++) {
+				if (this.field[i][j].is_view == false)
+					if (this.field[i][j].is_mine == false)
+						is_end = false;
+
+			}
+		}
+		if (is_end) {
+			document.dispatchEvent(win_game);
+		}
 	}
 
 	handleEvent(event) {
-		console.log(event);
-
 		if ((event.type == 'click') || (event.type == 'contextmenu')) {
 			let x = Number(event.srcElement.attributes.data_x.value);
 			let y = Number(event.srcElement.attributes.data_y.value);
@@ -250,7 +271,7 @@ class Field {
 		}
 		}
 
-		else if (event.code == 'Enter' && (event.ctrlKey || event.metaKey)) {
+		else if (event.code == 'Enter' && (event.ctrlKey || event.metaKey || event.shiftKey)) {
 
 			main_field.current_element.change_flag();	
 		}
@@ -295,10 +316,12 @@ class Field {
 			main_field.current_element.elem.classList.add('is_current');
 
 		}
+		main_field.check_game();
     }
 
 	open_mine(i, j, is_user) {
-		console.log(i, j, is_user);
+		i = new Number(i);
+		j = new Number(j);
 		if (this.field[i]) {
 			if (this.field[i][j]) {
 				if (this.field[i][j].is_view)
